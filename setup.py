@@ -8,7 +8,7 @@ history = Path("HISTORY.rst").read_text()
 
 
 def get_version():
-    regex = r"""^__version__ = '(.*)'$"""
+    regex = r'^__version__ = "(.*)"$'
     with open("litter_getter/__init__.py", "r") as f:
         text = f.read()
     return re.findall(regex, text, re.MULTILINE)[0]
