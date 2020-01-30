@@ -1,27 +1,23 @@
 # -*- coding: utf-8 -*-
-from copy import copy
 import json
 import logging
 import re
+from copy import copy
 
+import xlsxwriter
 from RISparser import readris
 from RISparser.config import TAG_KEY_MAPPING
-import xlsxwriter
 
 from . import utils
 
 
 class RisImporter(object):
-
     @classmethod
     def get_mapping(cls):
         mapping = copy(TAG_KEY_MAPPING)
-        mapping.update({
-            'AT': 'accession_type',
-            'PM': 'pubmed_id',
-            'N2': 'abstract2',
-            'SV': 'serial_volume',
-        })
+        mapping.update(
+            {"AT": "accession_type", "PM": "pubmed_id", "N2": "abstract2", "SV": "serial_volume"}
+        )
         return mapping
 
     @classmethod
@@ -38,7 +34,7 @@ class RisImporter(object):
 
     def __init__(self, f):
         if isinstance(f, str):
-            f = open(f, 'r')
+            f = open(f, "r")
         else:
             f = f
         reader = readris(f, mapping=self.get_mapping())
@@ -48,7 +44,7 @@ class RisImporter(object):
 
     @property
     def references(self):
-        if not hasattr(self, '_references'):
+        if not hasattr(self, "_references"):
             self._references = self._format()
         return self._references
 
@@ -67,7 +63,7 @@ class RisImporter(object):
 
         wb = xlsxwriter.Workbook(fn)
         ws = wb.add_worksheet()
-        bold = wb.add_format({'bold': True})
+        bold = wb.add_format({"bold": True})
 
         for c, txt in enumerate(header):
             ws.write(0, c, txt, bold)
@@ -84,65 +80,78 @@ class RisImporter(object):
 
 class ReferenceParser(object):
 
-    PLACEHOLDER_TEXT = '<ADD>'
+    PLACEHOLDER_TEXT = "<ADD>"
 
     # field types
     TITLE_FIELDS = (
-        'translated_title', 'title', 'primary_title',
-        'secondary_title', 'tertiary_title', 'short_title',
+        "translated_title",
+        "title",
+        "primary_title",
+        "secondary_title",
+        "tertiary_title",
+        "short_title",
     )
 
     AUTHOR_LIST_FIELDS = (
-        'authors', 'first_authors', 'secondary_authors',
-        'tertiary_authors', 'subsidiary_authors',
+        "authors",
+        "first_authors",
+        "secondary_authors",
+        "tertiary_authors",
+        "subsidiary_authors",
     )
 
-    ABSTRACT_FIELDS = ('abstract', 'abstract2', )
+    ABSTRACT_FIELDS = (
+        "abstract",
+        "abstract2",
+    )
 
-    YEAR_FIELDS = ('year', 'publication_year', )
+    YEAR_FIELDS = (
+        "year",
+        "publication_year",
+    )
 
     # First-group is rest of reference; second-group are initials
     # with optional second initial (middle-name) with optional periods
-    re_author = re.compile(r'([\-\,\s\w]+)\s([\s?\w{1,1}\.?]+)$', flags=re.UNICODE)
+    re_author = re.compile(r"([\-\,\s\w]+)\s([\s?\w{1,1}\.?]+)$", flags=re.UNICODE)
 
     # Extract the scopus EID
-    re_scopus_eid = re.compile(r'eid=([-\.\w]+)(?:&|$)', flags=re.UNICODE)
+    re_scopus_eid = re.compile(r"eid=([-\.\w]+)(?:&|$)", flags=re.UNICODE)
 
     EXTRACTED_FIELDS = [
-        'authors_short',
-        'title',
-        'year',
-        'citation',
-        'abstract',
-        'PMID',
-        'doi',
-        'accession_number',
-        'accession_db',
-        'reference_type',
-        'id',
-        'json',
+        "authors_short",
+        "title",
+        "year",
+        "citation",
+        "abstract",
+        "PMID",
+        "doi",
+        "accession_number",
+        "accession_db",
+        "reference_type",
+        "id",
+        "json",
     ]
 
     # Match any number (some PMIDs contain number and/or URL)
-    re_pmid = re.compile(r'([\d]+)')
+    re_pmid = re.compile(r"([\d]+)")
 
     def __init__(self, content):
         self.content = content
 
     def format(self):
-        if not hasattr(self, '_formatted'):
+        if not hasattr(self, "_formatted"):
             self._formatted = dict(
                 authors_short=self._get_authors_short(),
                 title=self._get_field(self.TITLE_FIELDS, self.PLACEHOLDER_TEXT),
                 year=self._get_field(self.YEAR_FIELDS, None),
                 citation=self._get_citation(),
-                abstract=self._get_field(self.ABSTRACT_FIELDS, ''),
+                abstract=self._get_field(self.ABSTRACT_FIELDS, ""),
                 PMID=self._get_pmid(),
-                doi=self.content.get('doi', None),
+                doi=self.content.get("doi", None),
                 accession_number=self._get_accession_number(),
-                accession_db=self.content.get('name_of_database', None),
-                reference_type=self.content.get('type_of_reference', None),
-                id=utils.try_int(self.content['id']),
+                accession_db=self.content.get("name_of_database", None),
+                reference_type=self.content.get("type_of_reference", None),
+                id=utils.try_int(self.content["id"]),
                 json=json.dumps(self.content),
             )
         return self._formatted
@@ -155,8 +164,8 @@ class ReferenceParser(object):
 
     def _get_pmid(self):
         # get PMID if specified in that field
-        if 'pubmed_id' in self.content:
-            pubmed_id = self.content['pubmed_id']
+        if "pubmed_id" in self.content:
+            pubmed_id = self.content["pubmed_id"]
             if type(pubmed_id) is int:
                 return str(pubmed_id)
             else:
@@ -166,20 +175,19 @@ class ReferenceParser(object):
                     return str(m[0])
 
         # get value accession number is NLM
-        if (self.content.get('name_of_database', '') == 'NLM' and
-                'accession_number' in self.content):
+        if self.content.get("name_of_database", "") == "NLM" and "accession_number" in self.content:
             try:
-                return int(self.content['accession_number'])
+                return int(self.content["accession_number"])
             except ValueError:
                 pass
 
         return None
 
     def _get_accession_number(self):
-        number = self.content.get('accession_number', None)
+        number = self.content.get("accession_number", None)
 
         # extract the Scopus EID
-        if number and isinstance(number, str) and 'eid=' in number:
+        if number and isinstance(number, str) and "eid=" in number:
             m = self.re_scopus_eid.findall(number)
             if len(m) > 0:
                 number = m[0]
@@ -197,62 +205,60 @@ class ReferenceParser(object):
                         txt = str(author)
                     m = self.re_author.match(txt)
                     if m:
-                        initials = re.sub(r'[\s\.]', '', m.group(2))
-                        surname = m.group(1).replace(',', '')
-                        txt = '{0} {1}'.format(surname, initials)
+                        initials = re.sub(r"[\s\.]", "", m.group(2))
+                        surname = m.group(1).replace(",", "")
+                        txt = "{0} {1}".format(surname, initials)
                     self._authors.append(txt)
 
     def _get_authors_short(self):
-        if not hasattr(self, '_authors'):
+        if not hasattr(self, "_authors"):
             self._clean_authors()
         return utils.get_author_short_text(self._authors)
 
     def _get_journal_citation(self):
         # volume is sometimes blank; only add parens if non-blank
-        volume = str(self.content.get('volume', ''))
+        volume = str(self.content.get("volume", ""))
         if len(volume) > 0:
-            volume = '; {0}'.format(volume)
+            volume = "; {0}".format(volume)
 
         # issue is sometimes blank; only add parens if non-blank
-        issue = str(self.content.get('note', ''))
+        issue = str(self.content.get("note", ""))
         if len(issue) > 0:
-            issue = ' ({0})'.format(issue)
+            issue = " ({0})".format(issue)
 
         # pages is sometimes blank; only add colon if non-blank
-        pages = str(self.content.get('start_page', ''))
+        pages = str(self.content.get("start_page", ""))
         if len(pages) > 0:
-            pages = ':{0}'.format(pages)
+            pages = ":{0}".format(pages)
 
-        sec_title = str(self.content.get('secondary_title', ''))  # journal
-        year = self.content.get('year', '')  # year
-        return '{0} {1}{2}{3}{4}'.format(*(
-            sec_title, year, volume, issue, pages
-        ))
+        sec_title = str(self.content.get("secondary_title", ""))  # journal
+        year = self.content.get("year", "")  # year
+        return "{0} {1}{2}{3}{4}".format(*(sec_title, year, volume, issue, pages))
 
     def _get_book_citation(self):
         vals = []
-        if 'secondary_title' in self.content:
-            vals.append('{0}.'.format(self.content['secondary_title']))
-        if 'year' in self.content:
-            vals.append('{0}.'.format(self.content['year']))
-        if 'start_page' in self.content:
-            vals.append('Pages {0}.'.format(self.content['start_page']))
-        if 'issn' in self.content:
-            vals.append('{0}'.format(self.content['issn']))
-        return ' '.join(vals)
+        if "secondary_title" in self.content:
+            vals.append("{0}.".format(self.content["secondary_title"]))
+        if "year" in self.content:
+            vals.append("{0}.".format(self.content["year"]))
+        if "start_page" in self.content:
+            vals.append("Pages {0}.".format(self.content["start_page"]))
+        if "issn" in self.content:
+            vals.append("{0}".format(self.content["issn"]))
+        return " ".join(vals)
 
     def _get_citation(self):
-        refType = self.content.get('type_of_reference', '')
+        refType = self.content.get("type_of_reference", "")
         citation = self.PLACEHOLDER_TEXT
-        if refType in ('JFULL', 'JOUR', ):
+        if refType in ("JFULL", "JOUR",):
             citation = self._get_journal_citation()
-        elif refType in ('BOOK', 'CHAP'):
+        elif refType in ("BOOK", "CHAP"):
             citation = self._get_book_citation()
-        elif refType == 'SER':
-            citation = self.content.get('alternate_title1', '')
-        elif refType == 'CONF':
-            citation = self.content.get('short_title', '')
+        elif refType == "SER":
+            citation = self.content.get("alternate_title1", "")
+        elif refType == "CONF":
+            citation = self.content.get("short_title", "")
         else:
-            id_ = self.content.get('id', None)
+            id_ = self.content.get("id", None)
             logging.warning('Unknown type: "{}", id="{}"'.format(refType, id_))
         return citation

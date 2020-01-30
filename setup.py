@@ -1,75 +1,53 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import re
+from pathlib import Path
+
 from setuptools import setup
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+readme = Path("README.md").read_text()
+history = Path("HISTORY.rst").read_text()
 
 
 def get_version():
     regex = r"""^__version__ = '(.*)'$"""
-    with open('litter_getter/__init__.py', 'r') as f:
+    with open("litter_getter/__init__.py", "r") as f:
         text = f.read()
     return re.findall(regex, text, re.MULTILINE)[0]
 
 
-requirements = [
-    'requests',
-    'XlsxWriter',
-    'RISparser>=0.4.3',
-]
-
-test_requirements = [
-    'pytest',
-]
+test_requirements = ("pytest",)
 
 setup(
-    name='litter_getter',
+    name="litter_getter",
     version=get_version(),
-    description='Retrieve literature from biomedical reference libraries such as PubMed, EPA\'s HERO, and imports from Endnote RIS exports',
-    long_description=readme + '\n\n' + history,
-    author='Andy Shapiro',
-    author_email='shapiromatron@gmail.com',
-    url='https://github.com/shapiromatron/litter_getter',
-    packages=[
-        'litter_getter',
-    ],
-    package_dir={'litter_getter': 'litter_getter'},
+    description="Retrieve literature from biomedical reference libraries such as PubMed, EPA's HERO, and imports from Endnote RIS exports",
+    long_description=readme + "\n\n" + history,
+    author="Andy Shapiro",
+    author_email="shapiromatron@gmail.com",
+    url="https://github.com/shapiromatron/litter_getter",
+    packages=["litter_getter"],
+    package_dir={"litter_getter": "litter_getter"},
     include_package_data=True,
-    install_requires=requirements,
-    # List additional groups of dependencies here
-    # (e.g. development dependencies).
-    # You can install these using the following syntax, for example:
-    # $ pip install -e .[dev,test]
+    install_requires=["requests", "XlsxWriter", "RISparser"],
     extras_require={
-        'dev': [
-            'check-manifest',
-            'wheel',
-            'sphinx',
-            'watchdog',
-            'flake8',
+        "dev": [
+            "wheel",
+            "black==19.10b0",
+            "flake8==3.7.9",
+            "isort==4.3.21",
+            "flake8-isort==2.8.0",
         ],
-        'test': [
-            'pytest',
-        ],
+        "test": test_requirements,
     },
-    license='MIT license',
+    license="MIT license",
     zip_safe=False,
-    keywords='litter_getter',
+    keywords="litter_getter",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
     ],
-    test_suite='tests',
-    tests_require=test_requirements
+    test_suite="tests",
+    tests_require=test_requirements,
 )

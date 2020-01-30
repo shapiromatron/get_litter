@@ -28,7 +28,6 @@ help:
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
-
 clean-build: ## remove build artifacts
 	rm -fr build/
 	rm -fr dist/
@@ -42,34 +41,6 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
-clean-test: ## remove test and coverage artifacts
-	rm -f .coverage
-	rm -fr htmlcov/
-
-lint: ## check style with flake8
-	flake8 litter_getter tests
-
-test: ## run tests quickly with the default Python
-	py.test
-
-coverage: ## check code coverage quickly with the default Python
-	coverage run --source litter_getter py.test
-
-		coverage report -m
-		coverage html
-		$(BROWSER) htmlcov/index.html
-
-docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/litter_getter.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -e -o docs/ litter_getter
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
-	$(BROWSER) docs/_build/html/index.html
-
-servedocs: docs ## compile the docs watching for changes
-	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
-
 release: clean ## package and upload a release
 	python setup.py sdist upload
 	python setup.py bdist_wheel upload
@@ -81,5 +52,11 @@ dist: clean ## builds source and wheel package
 	python setup.py bdist_wheel
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+lint:  ## Check for formatting issues via black & flake8
+	@black . --check && flake8 .
+
+format:  ## Modify code using black & show flake8 issues
+	@black . && isort -rc -y --atomic && flake8 .
+
+test:  ## Run python tests
+	@py.test

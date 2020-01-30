@@ -1,0 +1,18 @@
+name: ci-checks
+
+on: [pull_request]
+
+jobs:
+  tests:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.6'
+        architecture: 'x64'
+    - name: install + lint + test
+      run: |
+        pip install -e .[dev,test]
+        make lint
+        make test

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import json
-import six
-
 from unittest import TestCase
+
+import six
 
 
 class ExtendedTestCase(TestCase):
