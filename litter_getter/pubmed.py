@@ -33,11 +33,8 @@ class PubMedUtility:
     """Register tools with this utility class to import PubMed settings."""
 
     def _register_instance(self):
-        if settings.api_key == PubMedSettings.PLACEHOLDER:
-            raise ValueError(
-                "Improper settings; `pubmed.settings.connect()` method to register your tool."
-            )
-        self.settings["api_key"] = settings.api_key
+        if settings.api_key != PubMedSettings.PLACEHOLDER:
+            self.settings["api_key"] = settings.api_key
 
 
 class PubMedSearch(PubMedUtility):

@@ -1,5 +1,9 @@
 # History
 
+## 0.2.6 (2020-01-30)
+
+* Make Pubmed API key optional
+
 ## 0.2.5 (2020-01-30)
 
 * Use new HERO URL

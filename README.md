@@ -44,7 +44,7 @@ you have a need, feel free to submit an issue.
 
 ### PubMed
 
-The PubMed API generally requires an API for best [performance](https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/), therefore `litter_getter` requires a key to use.
+The PubMed API generally uses an API key for best [performance](https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/), in `litter_getter` this is optional but can be added, you'll only need to do this one time for a session.
 
 ```python
 from litter_getter import pubmed
@@ -52,8 +52,7 @@ from litter_getter import pubmed
 pubmed.connect('my-special-api-key')
 ```
 
-After submitting your tool credentials, a query can be submitted. The number of
-references returned and the IDs for the references can be extracted:
+If you're not using a key and a server returns 429 errors, you may want to try adding a key. A query can be submitted; the number of references returned and the IDs for the references can be extracted:
 
 ```python
 from litter_getter import pubmed
