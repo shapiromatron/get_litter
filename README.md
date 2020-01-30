@@ -23,15 +23,16 @@ git clone git@github.com:shapiromatron/litter_getter.git
 cd litter_getter/
 python -m venv venv
 source venv/bin/activate
-
 pip install -e .[dev,test]
 ```
 
 Tests require use of an API key; see below. I generally add one to my virtual environment:
 
 ```bash
-echo "export PUBMED_API_KEY=this-is-my-key" >> venv/bin/activate
+echo "export \"PUBMED_API_KEY=this-is-my-key\"" >> venv/bin/activate
+tail venv/bin/activate
 source venv/bin/activate
+
 make test
 ```
 
