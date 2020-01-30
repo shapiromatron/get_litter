@@ -31,7 +31,7 @@ https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/1200,1201,1203,12
 """
 
 
-class HEROFetch(object):
+class HEROFetch:
     """
     Handler to search and retrieve literature from US EPA's HERO database.
 
@@ -40,7 +40,7 @@ class HEROFetch(object):
     includes the PubMed ID, if available in HERO.
     """
 
-    base_url = r"https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/{pks}/recordsperpage/{rpp}.json"  # noqa
+    base_url = r"https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/{pks}/recordsperpage/{rpp}.json"
     default_settings = {"recordsperpage": 100}
 
     def __init__(self, id_list, **kwargs):

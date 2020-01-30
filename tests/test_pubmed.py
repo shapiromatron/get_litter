@@ -1,24 +1,19 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os
 from unittest import TestCase
 
 from litter_getter import pubmed
 
 
-class TestPubMedSettings(object):
-    def test_default(self):
-        assert pubmed.settings.tool == "PLACEHOLDER"
-        assert pubmed.settings.email == "PLACEHOLDER"
-
-    def test_connection(self):
-        pubmed.connect("hawc", "shapiromatron@gmail.com")
-        assert pubmed.settings.tool == "MYTOOl"
-        assert pubmed.settings.email == "myemail@email.com"
+def _pubmed_connect():
+    pubmed_api_key = os.environ.get("PUBMED_API_KEY")
+    if pubmed_api_key is None:
+        raise EnvironmentError("Test environment requires $PUBMED_API_KEY to be set.")
+    pubmed.settings.connect(pubmed_api_key)
 
 
 class PubMedSearchTests(TestCase):
     def setUp(self):
-        pubmed.connect("hawc", "thacker.samuel@epa.gov")
+        _pubmed_connect()
         self.term = "science[journal] AND breast cancer AND 2008[pdat]"
         self.results_list = ["19008416", "18927361", "18787170", "18487186", "18239126", "18239125"]
 
@@ -60,7 +55,7 @@ class PubMedSearchTests(TestCase):
 
 class PubMedFetchTests(TestCase):
     def setUp(self):
-        pubmed.connect("hawc", "thacker.samuel@epa.gov")
+        _pubmed_connect()
         self.ids = ["19008416", "18927361", "18787170", "18487186", "18239126", "18239125"]
 
     def test_standard_query(self):
@@ -170,8 +165,8 @@ class PubMedFetchTests(TestCase):
         obj.pop("abstract")
         expected = {
             "PMID": "20301382",
-            "authors_list": ["DiMauro S", "Hirano M"],
-            "authors_short": "DiMauro S and Hirano M",
+            "authors_list": ["Goldstein A", "Falk MJ"],
+            "authors_short": "Goldstein A and Falk MJ",
             "citation": "GeneReviews® (1993). Seattle (WA): University of Washington, Seattle.",
             "doi": None,
             "title": "Mitochondrial DNA Deletion Syndromes",

@@ -21,7 +21,17 @@ To grab a developer build:
 ```bash
 git clone git@github.com:shapiromatron/litter_getter.git
 cd litter_getter/
+python -m venv venv
+source venv/bin/activate
+
 pip install -e .[dev,test]
+```
+
+Tests require use of an API key; see below. I generally add one to my virtual environment:
+
+```bash
+echo "export PUBMED_API_KEY=this-is-my-key" >> venv/bin/activate
+source venv/bin/activate
 make test
 ```
 
@@ -33,13 +43,12 @@ you have a need, feel free to submit an issue.
 
 ### PubMed
 
-The PubMed API requires a registration of tools, in order to use the API. Therefore,
-before making an pubmed requests, you must register a tool and valid email address:
+The PubMed API generally requires an API for best [performance](https://ncbiinsights.ncbi.nlm.nih.gov/2017/11/02/new-api-keys-for-the-e-utilities/), therefore `litter_getter` requires a key to use.
 
 ```python
 from litter_getter import pubmed
 
-pubmed.connect('TOOL_NAME', 'email@nobody.com')
+pubmed.connect('my-special-api-key')
 ```
 
 After submitting your tool credentials, a query can be submitted. The number of

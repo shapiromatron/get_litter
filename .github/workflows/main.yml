@@ -12,6 +12,8 @@ jobs:
         python-version: '3.6'
         architecture: 'x64'
     - name: install + lint + test
+      env:
+        PUBMED_API_KEY: ${{ secrets.PUBMED_API_KEY }}
       run: |
         pip install -e .[dev,test]
         make lint

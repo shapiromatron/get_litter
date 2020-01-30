@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
-import sys
 import xml.etree.ElementTree as ET
 from itertools import chain
 
@@ -10,37 +9,35 @@ import requests
 from . import utils
 
 
-class PubMedSettings(object):
+class PubMedSettings:
     """Module-level settings to check that PubMed requests registered."""
 
-    placeholder = "PLACEHOLDER"
+    PLACEHOLDER = "PLACEHOLDER"
 
     def __init__(self):
-        self.tool = self.placeholder
-        self.email = self.placeholder
+        self.api_key = self.PLACEHOLDER
+
+    def connect(self, api_key: str):
+        self.api_key = api_key
 
 
-def connect(tool, email):
-    """Register the tool and email being used for querying PubMed."""
-    settings = getattr(module, "settings")
-    settings.tool = tool
-    settings.email = email
+# global singleton
+settings = PubMedSettings()
 
 
-# upload load, instantiate a settings file
-module = sys.modules[__name__]
-setattr(module, "settings", PubMedSettings())
+def connect(api_key: str):
+    settings.connect(api_key)
 
 
-class PubMedUtility(object):
+class PubMedUtility:
     """Register tools with this utility class to import PubMed settings."""
 
     def _register_instance(self):
-        settings = getattr(module, "settings")
-        if PubMedSettings.placeholder in [settings.tool, settings.email]:
-            raise ValueError("Improper settings; `pubmed.connect()` method to register your tool.")
-        self.settings["tool"] = settings.tool
-        self.settings["email"] = settings.email
+        if settings.api_key == PubMedSettings.PLACEHOLDER:
+            raise ValueError(
+                "Improper settings; `pubmed.settings.connect()` method to register your tool."
+            )
+        self.settings["api_key"] = settings.api_key
 
 
 class PubMedSearch(PubMedUtility):

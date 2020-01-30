@@ -11,7 +11,7 @@ from RISparser.config import TAG_KEY_MAPPING
 from . import utils
 
 
-class RisImporter(object):
+class RisImporter:
     @classmethod
     def get_mapping(cls):
         mapping = copy(TAG_KEY_MAPPING)
@@ -78,7 +78,7 @@ class RisImporter(object):
         wb.close()
 
 
-class ReferenceParser(object):
+class ReferenceParser:
 
     PLACEHOLDER_TEXT = "<ADD>"
 
