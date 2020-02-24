@@ -1,5 +1,11 @@
 # History
 
+## 0.2.7 (2020-02-28)
+
+* Standardize author name cleanup across all import types
+* Rename `authors_list` to `authors`
+* For HERO and RIS, don't save json field as string, but instead as JSON-compatible dictionary
+
 ## 0.2.6 (2020-01-30)
 
 * Make Pubmed API key optional

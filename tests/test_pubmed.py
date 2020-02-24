@@ -145,7 +145,7 @@ class PubMedFetchTests(TestCase):
             "PMID": "26468569",
             "title": "Application of Modern Toxicology Approaches for Predicting Acute Toxicity for Chemical Defense",
             "citation": "(2015). Washington (DC): National Academies Press (US).",
-            "authors_list": [
+            "authors": [
                 "Committee on Predictive-Toxicology Approaches for Military Assessments of Acute Exposures",
                 "Committee on Toxicology",
                 "Board on Environmental Studies and Toxicology",
@@ -165,7 +165,7 @@ class PubMedFetchTests(TestCase):
         obj.pop("abstract")
         expected = {
             "PMID": "20301382",
-            "authors_list": ["Goldstein A", "Falk MJ"],
+            "authors": ["Goldstein A", "Falk MJ"],
             "authors_short": "Goldstein A and Falk MJ",
             "citation": "GeneReviews® (1993). Seattle (WA): University of Washington, Seattle.",
             "doi": None,

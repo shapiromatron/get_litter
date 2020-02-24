@@ -74,7 +74,7 @@ class HEROFetch:
                 self.failures.extend([str(pk) for pk in pks.split(",")])
                 logging.info("HERO request timeout: {url}".format(url=url))
         self._get_missing_ids()
-        return dict(success=self.content, failure=self.failures,)
+        return dict(success=self.content, failure=self.failures)
 
     def _get_missing_ids(self):
         found_ids = set([str(v["HEROID"]) for v in self.content])
@@ -97,19 +97,20 @@ class HEROFetch:
         else:
             return v
 
-    def _parse_article(self, article):
-        d = dict(
-            json=json.dumps(article),
-            HEROID=str(self._parse_pseudo_json(article, "REFERENCE_ID")),
-            PMID=str(self._parse_pseudo_json(article, "PMID")),
-            title=self._parse_pseudo_json(article, "TITLE"),
-            abstract=self._parse_pseudo_json(article, "ABSTRACT"),
-            source=self._parse_pseudo_json(article, "SOURCE"),
-            year=self._force_float_or_none(self._parse_pseudo_json(article, "YEAR")),
+    def _parse_article(self, content):
+        authors = utils.normalize_authors(content.get("AUTHORS", "").split("; "))
+        authors_short = utils.get_author_short_text(authors)
+        return dict(
+            json=content,
+            HEROID=str(self._parse_pseudo_json(content, "REFERENCE_ID")),
+            PMID=str(self._parse_pseudo_json(content, "PMID")),
+            title=self._parse_pseudo_json(content, "TITLE"),
+            abstract=self._parse_pseudo_json(content, "ABSTRACT"),
+            source=self._parse_pseudo_json(content, "SOURCE"),
+            year=self._force_float_or_none(self._parse_pseudo_json(content, "YEAR")),
+            authors=authors,
+            authors_short=authors_short,
         )
-        logging.debug("Parsing results for HEROID: {heroid}".format(heroid=d["HEROID"]))
-        d.update(self._authors_info(article.get("AUTHORS", None)))
-        return d
 
     @classmethod
     def _try_single_find(cls, xml, search):
@@ -117,10 +118,3 @@ class HEROFetch:
             return xml.find(search).text
         except Exception:
             return ""
-
-    def _authors_info(self, names_string):
-        names = []
-        if names_string:
-            names = names_string.split("; ")
-            names = [name.replace(", ", " ") for name in names]
-        return dict(authors_list=names, authors_short=utils.get_author_short_text(names))

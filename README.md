@@ -76,7 +76,7 @@ fetch = pubmed.PubMedFetch(id_list=ids)
 refs = fetch.get_content()
 
 refs[0].keys()
->>> ['xml', 'doi', 'title', 'abstract', 'citation', 'authors_short', 'year', 'PMID', 'authors_list']
+>>> ['xml', 'doi', 'title', 'abstract', 'citation', 'authors_short', 'year', 'PMID', 'authors']
 ```
 
 The complete XML returned from Pubmed is captured in the `xml` field.
@@ -99,7 +99,7 @@ results.failures()
 >>> [12413113]
 
 >>> results['success'][0].keys()
->>> ['source', 'json', 'title', 'authors_short', 'HEROID', 'abstract', 'year', 'PMID', 'authors_list']
+>>> ['source', 'json', 'title', 'authors_short', 'HEROID', 'abstract', 'year', 'PMID', 'authors']
 ```
 
 The complete JSON returned from HERo is captured in the `json` field.

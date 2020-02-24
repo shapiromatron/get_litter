@@ -14,7 +14,7 @@ def test_hero_success_query():
     # test individual components
     assert val["HEROID"] == "1201"
     assert val["PMID"] == "9922222"
-    assert val["authors_list"] == [
+    assert val["authors"] == [
         "Farman CA",
         "Watkins K",
         "Van Hoozen B",

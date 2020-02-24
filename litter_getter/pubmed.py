@@ -41,7 +41,7 @@ class PubMedSearch(PubMedUtility):
     """Search PubMed with search-term and return a complete list of PubMed IDs."""
 
     base_url = r"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    default_settings = dict(retmax=5000, db="pubmed",)
+    default_settings = dict(retmax=5000, db="pubmed")
 
     def __init__(self, term, **kwargs):
         self.id_count = None
@@ -52,7 +52,7 @@ class PubMedSearch(PubMedUtility):
             self.settings[k] = v
 
     def _get_id_count(self):
-        data = dict(db=self.settings["db"], term=self.settings["term"], rettype="count",)
+        data = dict(db=self.settings["db"], term=self.settings["term"], rettype="count")
         r = requests.post(PubMedSearch.base_url, data=data)
         if r.status_code == 200:
             txt = ET.fromstring(r.text)
@@ -104,7 +104,7 @@ class PubMedFetch(PubMedUtility):
     """Given a list of PubMed IDs, return list of dict of PubMed citation."""
 
     base_url = r"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-    default_settings = dict(retmax=1000, db="pubmed", retmode="xml",)
+    default_settings = dict(retmax=1000, db="pubmed", retmode="xml")
 
     ARTICLE = 0
     BOOK = 1
@@ -230,7 +230,9 @@ class PubMedFetch(PubMedUtility):
         for auth in auths:
             try:
                 names.append(
-                    "{0} {1}".format(auth.find("LastName").text, auth.find("Initials").text)
+                    utils.normalize_author(
+                        "{0} {1}".format(auth.find("LastName").text, auth.find("Initials").text)
+                    )
                 )
             except Exception:
                 pass
@@ -240,7 +242,7 @@ class PubMedFetch(PubMedUtility):
             except Exception:
                 pass
 
-        return {"authors_list": names, "authors_short": utils.get_author_short_text(names)}
+        return {"authors": names, "authors_short": utils.get_author_short_text(names)}
 
     def _journal_info(self, article):
         return "{journal} {year}; {volume} ({issue}):{pages}".format(

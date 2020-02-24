@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
 import logging
 import re
 from copy import copy
@@ -100,25 +99,16 @@ class ReferenceParser:
         "subsidiary_authors",
     )
 
-    ABSTRACT_FIELDS = (
-        "abstract",
-        "abstract2",
-    )
+    ABSTRACT_FIELDS = ("abstract", "abstract2")
 
-    YEAR_FIELDS = (
-        "year",
-        "publication_year",
-    )
-
-    # First-group is rest of reference; second-group are initials
-    # with optional second initial (middle-name) with optional periods
-    re_author = re.compile(r"([\-\,\s\w]+)\s([\s?\w{1,1}\.?]+)$", flags=re.UNICODE)
+    YEAR_FIELDS = ("year", "publication_year")
 
     # Extract the scopus EID
     re_scopus_eid = re.compile(r"eid=([-\.\w]+)(?:&|$)", flags=re.UNICODE)
 
     EXTRACTED_FIELDS = [
         "authors_short",
+        "authors",
         "title",
         "year",
         "citation",
@@ -142,6 +132,7 @@ class ReferenceParser:
         if not hasattr(self, "_formatted"):
             self._formatted = dict(
                 authors_short=self._get_authors_short(),
+                authors=", ".join(self._authors),
                 title=self._get_field(self.TITLE_FIELDS, self.PLACEHOLDER_TEXT),
                 year=self._get_field(self.YEAR_FIELDS, None),
                 citation=self._get_citation(),
@@ -152,7 +143,7 @@ class ReferenceParser:
                 accession_db=self.content.get("name_of_database", None),
                 reference_type=self.content.get("type_of_reference", None),
                 id=utils.try_int(self.content["id"]),
-                json=json.dumps(self.content),
+                json=self.content,
             )
         return self._formatted
 
@@ -195,20 +186,11 @@ class ReferenceParser:
         return number
 
     def _clean_authors(self):
-        self._authors = []
+        authors = []
         for fld in self.AUTHOR_LIST_FIELDS:
             if fld in self.content:
-                # attempt changing "Smith D. L." to "Smith DL"
-                for author in self.content[fld]:
-                    if isinstance(author, str):
-                        # make sure we're dealing w/ unicode
-                        txt = str(author)
-                    m = self.re_author.match(txt)
-                    if m:
-                        initials = re.sub(r"[\s\.]", "", m.group(2))
-                        surname = m.group(1).replace(",", "")
-                        txt = "{0} {1}".format(surname, initials)
-                    self._authors.append(txt)
+                authors.extend([author for author in self.content[fld]])
+        self._authors = utils.normalize_authors(authors)
 
     def _get_authors_short(self):
         if not hasattr(self, "_authors"):
@@ -250,7 +232,7 @@ class ReferenceParser:
     def _get_citation(self):
         refType = self.content.get("type_of_reference", "")
         citation = self.PLACEHOLDER_TEXT
-        if refType in ("JFULL", "JOUR",):
+        if refType in ("JFULL", "JOUR"):
             citation = self._get_journal_citation()
         elif refType in ("BOOK", "CHAP"):
             citation = self._get_book_citation()
