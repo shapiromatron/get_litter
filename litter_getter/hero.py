@@ -1,34 +1,43 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from typing import Any, Dict, Optional
 
 import requests
 
 from . import utils
 
 
-"""
-HERO API (example function call):
-GET http://hero.epa.gov/ws/index.cfm/api/1.0/search/heroid/1203
+def _parse_pseudo_json(d: Dict, field: str) -> Any:
+    # built-in json parser doesn't identify nulls in HERO returns
+    v = d.get(field, None)
+    if v == "null":
+        return None
+    else:
+        return v
 
-All query fields are passed as name/value pairs in the URL. For example:
 
-JSON
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/mercury.json
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/singleyear/1990/any/inhalation
+def _force_float_or_none(val) -> Optional[float]:
+    try:
+        return float(val)
+    except Exception:
+        return None
 
-XML
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/mercury.xml
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/singleyear/1990/any/inhalation%20reference.xml
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/singleyear/1990/any/inhalation%20reference/recordsperpage/5.xml
 
-RIS
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/mercury.ris
-
-Getting multiple HERO ids (records per page required)
-https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/1200,1201,1203,1204/recordsperpage/500.xml
-
-"""
+def parse_article(content: Dict) -> Dict:
+    authors = utils.normalize_authors(content.get("AUTHORS", "").split("; "))
+    authors_short = utils.get_author_short_text(authors)
+    return dict(
+        json=content,
+        HEROID=str(_parse_pseudo_json(content, "REFERENCE_ID")),
+        PMID=str(_parse_pseudo_json(content, "PMID")),
+        title=_parse_pseudo_json(content, "TITLE"),
+        abstract=_parse_pseudo_json(content, "ABSTRACT"),
+        source=_parse_pseudo_json(content, "SOURCE"),
+        year=_force_float_or_none(_parse_pseudo_json(content, "YEAR")),
+        authors=authors,
+        authors_short=authors_short,
+    )
 
 
 class HEROFetch:
@@ -66,7 +75,7 @@ class HEROFetch:
                 if r.status_code == 200:
                     data = json.loads(r.text)
                     for ref in data["results"]:
-                        self.content.append(self._parse_article(ref))
+                        self.content.append(parse_article(ref))
                 else:
                     self.failures.extend([str(pk) for pk in pks.split(",")])
                     logging.info("HERO request failure: {url}".format(url=url))
@@ -82,35 +91,6 @@ class HEROFetch:
         missing = list(needed_ids - found_ids)
         if len(missing) > 0:
             self.failures.extend(missing)
-
-    def _force_float_or_none(self, val):
-        try:
-            return float(val)
-        except Exception:
-            return None
-
-    def _parse_pseudo_json(self, d, field):
-        # built-in json parser doesn't identify nulls in HERO returns
-        v = d.get(field, None)
-        if v == "null":
-            return None
-        else:
-            return v
-
-    def _parse_article(self, content):
-        authors = utils.normalize_authors(content.get("AUTHORS", "").split("; "))
-        authors_short = utils.get_author_short_text(authors)
-        return dict(
-            json=content,
-            HEROID=str(self._parse_pseudo_json(content, "REFERENCE_ID")),
-            PMID=str(self._parse_pseudo_json(content, "PMID")),
-            title=self._parse_pseudo_json(content, "TITLE"),
-            abstract=self._parse_pseudo_json(content, "ABSTRACT"),
-            source=self._parse_pseudo_json(content, "SOURCE"),
-            year=self._force_float_or_none(self._parse_pseudo_json(content, "YEAR")),
-            authors=authors,
-            authors_short=authors_short,
-        )
 
     @classmethod
     def _try_single_find(cls, xml, search):

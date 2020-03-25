@@ -1,6 +1,6 @@
 # History
 
-## 0.2.7 (2020-02-28)
+## 0.2.7 (2020-03-24)
 
 * Standardize author name cleanup across all import types
 * Rename `authors_list` to `authors`
