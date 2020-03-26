@@ -11,10 +11,14 @@ jobs:
       with:
         python-version: '3.6'
         architecture: 'x64'
-    - name: install + lint + test
+    - name: install
+      run: |
+        pip install -e .[dev,test]
+    - name: lint
+      run: |
+        make lint
+    - name: test
       env:
         PUBMED_API_KEY: ${{ secrets.PUBMED_API_KEY }}
       run: |
-        pip install -e .[dev,test]
-        make lint
         make test

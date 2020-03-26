@@ -6,6 +6,7 @@ exclude = '''
 /(
     \.git
   | \.mypy_cache
+  | build
   | docs
   | venv
 )/
