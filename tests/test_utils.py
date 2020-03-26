@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from unittest import TestCase
-
 from litter_getter.utils import get_author_short_text, normalize_author
 
 
@@ -50,19 +46,18 @@ class TestNormalizeAuthors:
         assert normalize_author("SKJ") == "SKJ"
 
 
-class TestAuthor(TestCase):
-    def test_parsing(self):
-        # 0 test
-        self.assertEqual("", get_author_short_text([]))
+def test_get_author_short_text():
+    # 0 test
+    assert get_author_short_text([]) == ""
 
-        # 1 test
-        self.assertEqual("Smith J", get_author_short_text(["Smith J"]))
+    # 1 test
+    assert get_author_short_text(["Smith J"]) == "Smith J"
 
-        # 2 test
-        self.assertEqual("Smith J and Smith J", get_author_short_text(["Smith J"] * 2))
+    # 2 test
+    assert get_author_short_text(["Smith J"] * 2) == "Smith J and Smith J"
 
-        # 3 test
-        self.assertEqual("Smith J, Smith J, and Smith J", get_author_short_text(["Smith J"] * 3))
+    # 3 test
+    assert get_author_short_text(["Smith J"] * 3) == "Smith J, Smith J, and Smith J"
 
-        # 4 test
-        self.assertEqual("Smith J et al.", get_author_short_text(["Smith J"] * 4))
+    # 4 test
+    assert get_author_short_text(["Smith J"] * 4) == "Smith J et al."

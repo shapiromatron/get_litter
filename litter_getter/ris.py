@@ -201,32 +201,32 @@ class ReferenceParser:
         # volume is sometimes blank; only add parens if non-blank
         volume = str(self.content.get("volume", ""))
         if len(volume) > 0:
-            volume = "; {0}".format(volume)
+            volume = f"; {volume}"
 
         # issue is sometimes blank; only add parens if non-blank
         issue = str(self.content.get("note", ""))
         if len(issue) > 0:
-            issue = " ({0})".format(issue)
+            issue = f" ({issue})"
 
         # pages is sometimes blank; only add colon if non-blank
         pages = str(self.content.get("start_page", ""))
         if len(pages) > 0:
-            pages = ":{0}".format(pages)
+            pages = f":{pages}"
 
         sec_title = str(self.content.get("secondary_title", ""))  # journal
         year = self.content.get("year", "")  # year
-        return "{0} {1}{2}{3}{4}".format(*(sec_title, year, volume, issue, pages))
+        return f"{sec_title} {year}{volume}{issue}{pages}"
 
     def _get_book_citation(self):
         vals = []
         if "secondary_title" in self.content:
-            vals.append("{0}.".format(self.content["secondary_title"]))
+            vals.append(f"{self.content['secondary_title']}.")
         if "year" in self.content:
-            vals.append("{0}.".format(self.content["year"]))
+            vals.append(f"{self.content['year']}.")
         if "start_page" in self.content:
-            vals.append("Pages {0}.".format(self.content["start_page"]))
+            vals.append(f"Pages {self.content['start_page']}.")
         if "issn" in self.content:
-            vals.append("{0}".format(self.content["issn"]))
+            vals.append(f"{self.content['issn']}")
         return " ".join(vals)
 
     def _get_citation(self):
@@ -242,5 +242,5 @@ class ReferenceParser:
             citation = self.content.get("short_title", "")
         else:
             id_ = self.content.get("id", None)
-            logging.warning('Unknown type: "{}", id="{}"'.format(refType, id_))
+            logging.warning(f'Unknown type: "{refType}", id="{id_}"')
         return citation

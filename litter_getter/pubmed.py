@@ -40,7 +40,7 @@ class PubMedUtility:
 class PubMedSearch(PubMedUtility):
     """Search PubMed with search-term and return a complete list of PubMed IDs."""
 
-    base_url = r"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     default_settings = dict(retmax=5000, db="pubmed")
 
     def __init__(self, term, **kwargs):
@@ -100,7 +100,7 @@ class PubMedSearch(PubMedUtility):
 class PubMedFetch(PubMedUtility):
     """Given a list of PubMed IDs, return list of dict of PubMed citation."""
 
-    base_url = r"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
     default_settings = dict(retmax=1000, db="pubmed", retmode="xml")
 
     def __init__(self, id_list, **kwargs):
@@ -214,7 +214,7 @@ class PubMedParser:
                 tmp = "".join([txt for txt in abstract.itertext()])
                 lbl = abstract.attrib.get("Label")
                 if lbl:
-                    tmp = '<span class="abstract_label">{v}: </span>'.format(v=lbl) + tmp
+                    tmp = f'<span class="abstract_label">{lbl}: </span>' + tmp
                 txts.append(tmp)
             txt = "<br>".join(txts)
         return txt
@@ -243,7 +243,7 @@ class PubMedParser:
             try:
                 names.append(
                     utils.normalize_author(
-                        "{0} {1}".format(auth.find("LastName").text, auth.find("Initials").text)
+                        f"{auth.find('LastName').text} {auth.find('Initials').text}"
                     )
                 )
             except Exception:
@@ -258,17 +258,14 @@ class PubMedParser:
 
     @classmethod
     def _journal_info(cls, tree) -> str:
-        return "{journal} {year}; {volume} ({issue}):{pages}".format(
-            journal=cls._try_single_find(tree, "MedlineCitation/Article/Journal/ISOAbbreviation"),
-            year=cls._try_single_find(
-                tree, "MedlineCitation/Article/Journal/JournalIssue/PubDate/Year"
-            ),
-            volume=cls._try_single_find(
-                tree, "MedlineCitation/Article/Journal/JournalIssue/Volume"
-            ),
-            issue=cls._try_single_find(tree, "MedlineCitation/Article/Journal/JournalIssue/Issue"),
-            pages=cls._try_single_find(tree, "MedlineCitation/Article/Pagination/MedlinePgn"),
+        journal = cls._try_single_find(tree, "MedlineCitation/Article/Journal/ISOAbbreviation")
+        year = cls._try_single_find(
+            tree, "MedlineCitation/Article/Journal/JournalIssue/PubDate/Year"
         )
+        volume = cls._try_single_find(tree, "MedlineCitation/Article/Journal/JournalIssue/Volume")
+        issue = cls._try_single_find(tree, "MedlineCitation/Article/Journal/JournalIssue/Issue")
+        pages = cls._try_single_find(tree, "MedlineCitation/Article/Pagination/MedlinePgn")
+        return f"{journal} {year}; {volume} ({issue}):{pages}"
 
     @classmethod
     def _get_book_citation(cls, tree, title=None) -> str:
@@ -277,12 +274,10 @@ class PubMedParser:
         else:
             title = ""
 
-        return "{title}({year}). {location}: {publisher}.".format(
-            title=title,
-            year=cls._try_single_find(tree, "BookDocument/Book/PubDate/Year"),
-            location=cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherLocation"),
-            publisher=cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherName"),
-        )
+        year = cls._try_single_find(tree, "BookDocument/Book/PubDate/Year")
+        location = cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherLocation")
+        publisher = cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherName")
+        return f"{title}({year}). {location}: {publisher}."
 
     @classmethod
     def _get_year(cls, tree, dtype) -> Optional[int]:

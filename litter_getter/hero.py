@@ -48,7 +48,6 @@ class HEROFetch:
     includes the PubMed ID, if available in HERO.
     """
 
-    base_url = r"https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/{pks}/recordsperpage/{rpp}.json"
     default_settings = {"recordsperpage": 100}
 
     def __init__(self, id_list: List[int], **kwargs):
@@ -66,8 +65,9 @@ class HEROFetch:
         rng = list(range(0, self.ids_count, self.settings["recordsperpage"]))
         for recstart in rng:
             request_ids = self.ids[recstart : recstart + self.settings["recordsperpage"]]
-            pks = ",".join([str(pk) for pk in request_ids])
-            url = HEROFetch.base_url.format(pks=pks, rpp=self.settings["recordsperpage"])
+            ids = ",".join([str(id_) for id_ in request_ids])
+            rpp = self.settings["recordsperpage"]
+            url = f"https://hero.epa.gov/hero/ws/index.cfm/api/1.0/search/criteria/{ids}/recordsperpage/{rpp}.json"
             try:
                 r = requests.get(url, timeout=30.0)
                 if r.status_code == 200:
@@ -75,9 +75,9 @@ class HEROFetch:
                     for ref in data["results"]:
                         self.content.append(parse_article(ref))
                 else:
-                    logging.info("HERO request failure: {url}".format(url=url))
+                    logging.info(f"HERO request failure: {url}")
             except requests.exceptions.Timeout:
-                logging.info("HERO request timeout: {url}".format(url=url))
+                logging.info(f"HERO request timeout: {url}")
         self.failures = self._get_missing_ids()
         return dict(success=self.content, failure=self.failures)
 

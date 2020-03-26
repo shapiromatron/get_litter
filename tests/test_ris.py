@@ -2,7 +2,6 @@ from pathlib import Path
 
 from litter_getter.ris import RisImporter
 
-
 DATA_ROOT = Path(__file__).parent / "data"
 
 
