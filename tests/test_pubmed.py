@@ -15,7 +15,7 @@ class PubMedSearchTests(TestCase):
     def setUp(self):
         _pubmed_connect()
         self.term = "science[journal] AND breast cancer AND 2008[pdat]"
-        self.results_list = ["19008416", "18927361", "18787170", "18487186", "18239126", "18239125"]
+        self.results_list = [19008416, 18927361, 18787170, 18487186, 18239126, 18239125]
 
     def test_standard_query(self):
         self.search = pubmed.PubMedSearch(term=self.term)
@@ -35,10 +35,10 @@ class PubMedSearchTests(TestCase):
         self.search = pubmed.PubMedSearch(term=self.term)
         self.search.get_ids_count()
         self.search.get_ids()
-        old_ids_list = ["999999", "19008416", "18927361", "18787170", "18487186"]
+        old_ids_list = [999999, 19008416, 18927361, 18787170, 18487186]
         changes = self.search.get_changes_from_previous_search(old_ids_list=old_ids_list)
-        self.assertEqual(changes["added"], set(["18239126", "18239125"]))
-        self.assertEqual(changes["removed"], set(["999999"]))
+        self.assertEqual(changes["added"], set([18239126, 18239125]))
+        self.assertEqual(changes["removed"], set([999999]))
 
     def test_complex_query(self):
         """Ensure complicated search term executes and returns results."""
@@ -56,7 +56,7 @@ class PubMedSearchTests(TestCase):
 class PubMedFetchTests(TestCase):
     def setUp(self):
         _pubmed_connect()
-        self.ids = ["19008416", "18927361", "18787170", "18487186", "18239126", "18239125"]
+        self.ids = [19008416, 18927361, 18787170, 18487186, 18239126, 18239125]
 
     def test_standard_query(self):
         self.fetch = pubmed.PubMedFetch(id_list=self.ids)
@@ -142,7 +142,7 @@ class PubMedFetchTests(TestCase):
             "authors_short": "Committee on Predictive-Toxicology Approaches for Military Assessments of Acute Exposures et al.",
             "doi": "10.17226/21775",
             "year": 2015,
-            "PMID": "26468569",
+            "PMID": 26468569,
             "title": "Application of Modern Toxicology Approaches for Predicting Acute Toxicity for Chemical Defense",
             "citation": "(2015). Washington (DC): National Academies Press (US).",
             "authors": [
@@ -154,7 +154,7 @@ class PubMedFetchTests(TestCase):
                 "The National Academies of Sciences, Engineering, and Medicine",
             ],
         }
-        self.assertEqual(obj, expected)
+        assert obj == expected
 
     def test_book_chapter(self):
         self.ids = (20301382,)
@@ -164,7 +164,7 @@ class PubMedFetchTests(TestCase):
         obj.pop("xml")
         obj.pop("abstract")
         expected = {
-            "PMID": "20301382",
+            "PMID": 20301382,
             "authors": ["Goldstein A", "Falk MJ"],
             "authors_short": "Goldstein A and Falk MJ",
             "citation": "GeneReviews® (1993). Seattle (WA): University of Washington, Seattle.",
@@ -172,13 +172,14 @@ class PubMedFetchTests(TestCase):
             "title": "Mitochondrial DNA Deletion Syndromes",
             "year": 1993,
         }
-        self.assertEqual(obj, expected)
+        assert obj == expected
 
     def _results_check(self):
         self.assertEqual(len(self.fetch.content), 6)
         self.assertListEqual([item["PMID"] for item in self.fetch.content], self.ids)
 
-        citations = [
+        # check journal citation
+        expected = [
             "Science 2008; 322 (5908):1695-9",
             "Science 2008; 322 (5900):357",
             "Science 2008; 321 (5895):1499-502",
@@ -186,9 +187,11 @@ class PubMedFetchTests(TestCase):
             "Science 2008; 319 (5863):620-4",
             "Science 2008; 319 (5863):617-20",
         ]
-        self.assertListEqual([item["citation"] for item in self.fetch.content], citations)
+        actual = [item["citation"] for item in self.fetch.content]
+        assert expected == actual
 
-        authors_short = [
+        # check short authors
+        expected = [
             "Varambally S et al.",
             "Couzin J",
             "Mao JH et al.",
@@ -196,4 +199,5 @@ class PubMedFetchTests(TestCase):
             "Schlabach MR et al.",
             "Silva JM et al.",
         ]
-        self.assertListEqual([item["authors_short"] for item in self.fetch.content], authors_short)
+        actual = [item["authors_short"] for item in self.fetch.content]
+        assert expected == actual

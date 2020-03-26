@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 import xml.etree.ElementTree as ET
 from itertools import chain
+from typing import Dict, List, Optional
 
 import requests
 
@@ -57,17 +57,14 @@ class PubMedSearch(PubMedUtility):
         if r.status_code == 200:
             txt = ET.fromstring(r.text)
             self.id_count = int(txt.find("Count").text)
-            logging.info("{c} references found.".format(c=self.id_count))
+            logging.info(f"{self.id_count} references found")
         else:
             raise Exception("Search query failed; please reformat query or try again later")
 
-    def _parse_ids(self, txt):
-        def parse_id(xml):
-            return str(xml.text)
+        return self.id_count
 
-        id_list = ET.fromstring(txt).find("IdList")
-        ids = id_list.findall("Id")
-        return list(map(parse_id, ids))
+    def _parse_ids(self, tree: str) -> List[int]:
+        return [int(id.text) for id in ET.fromstring(tree).find("IdList").findall("Id")]
 
     def _fetch_ids(self):
         ids = []
@@ -78,17 +75,17 @@ class PubMedSearch(PubMedUtility):
         self.request_count = len(rng)
         for retstart in rng:
             data["retstart"] = retstart
-            r = requests.post(PubMedSearch.base_url, data=data)
-            if r.status_code == 200:
-                ids.extend(self._parse_ids(r.text))
+            resp = requests.post(PubMedSearch.base_url, data=data)
+            if resp.status_code == 200:
+                ids.extend(self._parse_ids(resp.text))
             else:
                 raise Exception("Search query failed; please reformat query or try again later")
         self.ids = ids
 
-    def get_ids_count(self):
-        self._get_id_count()
+    def get_ids_count(self) -> int:
+        return self._get_id_count()
 
-    def get_ids(self):
+    def get_ids(self) -> List[int]:
         self._fetch_ids()
         return self.ids
 
@@ -106,6 +103,40 @@ class PubMedFetch(PubMedUtility):
     base_url = r"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
     default_settings = dict(retmax=1000, db="pubmed", retmode="xml")
 
+    def __init__(self, id_list, **kwargs):
+        if id_list is None:
+            raise Exception("List of IDs are required for a PubMed search")
+        self.ids = id_list
+        self.content: List[Dict] = []
+        self.settings = PubMedFetch.default_settings.copy()
+        self._register_instance()
+        for k, v in kwargs.items():
+            self.settings[k] = v
+
+    def get_content(self) -> List[Dict]:
+        data = self.settings.copy()
+        rng = list(range(0, len(self.ids), self.settings["retmax"]))
+        self.request_count = len(rng)
+        for retstart in rng:
+            data["id"] = self.ids[retstart : retstart + self.settings["retmax"]]
+            resp = requests.post(PubMedFetch.base_url, data=data)
+            if resp.status_code == 200:
+                tree = ET.fromstring(resp.text.encode("utf-8"))
+                if tree.tag != "PubmedArticleSet":
+                    raise ValueError(f"Unexpected response type: {tree.tag}")
+                for content in tree.getchildren():
+                    result = PubMedParser.parse(content)
+                    if result:
+                        self.content.append(result)
+            else:
+                logging.error(f"Pubmed failure: {resp.status_code} -> {resp.text}")
+                logging.error(f"Pubmed failure data submission: {data}")
+                raise Exception("Fetch query failed; please reformat query or try again later")
+        return self.content
+
+
+class PubMedParser:
+
     ARTICLE = 0
     BOOK = 1
 
@@ -115,82 +146,62 @@ class PubMedFetch(PubMedUtility):
     DOI_BOOK_SEARCH_STRING = 'BookDocument/ArticleIdList/ArticleId[@IdType="doi"]'
     ABSTRACT_BOOK_SEARCH_STRING = "BookDocument/Abstract/AbstractText"
 
-    def __init__(self, id_list, **kwargs):
-        if id_list is None:
-            raise Exception("List of IDs are required for a PubMed search")
-        self.ids = id_list
-        self.content = []
-        self.settings = PubMedFetch.default_settings.copy()
-        self._register_instance()
-        for k, v in kwargs.items():
-            self.settings[k] = v
+    @classmethod
+    def parse(cls, tree) -> Optional[Dict]:
+        if tree.tag == "PubmedArticle":
+            return cls._parse_article(tree)
+        elif tree.tag == "PubmedBookArticle":
+            return cls._parse_book(tree)
+        else:
+            logging.warning(f"Cannot parse response: {tree.tag}")
+            return None
 
-    def get_content(self):
-        data = self.settings.copy()
-        rng = list(range(0, len(self.ids), self.settings["retmax"]))
-        self.request_count = len(rng)
-        for retstart in rng:
-            data["id"] = self.ids[retstart : retstart + self.settings["retmax"]]
-            r = requests.post(PubMedFetch.base_url, data=data)
-            if r.status_code == 200:
-                articles = ET.fromstring(r.text.encode("utf-8")).findall("PubmedArticle")
-                for article in articles:
-                    self.content.append(self._parse_article(article))
-                books = ET.fromstring(r.text.encode("utf-8")).findall("PubmedBookArticle")
-                for book in books:
-                    self.content.append(self._parse_book(book))
-            else:
-                logging.error("Pubmed failure: {}, content: {}".format(r.status_code, r.text))
-                logging.error("Pubmed failure data submission: {}".format(data))
-                raise Exception("Fetch query failed; please reformat query or try again later")
-        return self.content
-
-    def _parse_article(self, article):
-        pmid = str(PubMedFetch._try_single_find(article, "MedlineCitation/PMID"))
-        logging.debug("Parsing results for PMID: {pmid}".format(pmid=pmid))
+    @classmethod
+    def _parse_article(cls, tree) -> Dict:
         d = {
-            "xml": ET.tostring(article, encoding="unicode"),
-            "PMID": pmid,
-            "title": PubMedFetch._try_single_find(article, "MedlineCitation/Article/ArticleTitle"),
-            "abstract": self._get_abstract(article, self.ABSTRACT_ARTICLE_SEARCH_STRING),
-            "citation": self._journal_info(article),
-            "year": self._get_year(article, dtype=self.ARTICLE),
-            "doi": self._get_doi(article, self.DOI_ARTICLE_SEARCH_STRING),
+            "xml": ET.tostring(tree, encoding="utf-8"),
+            "PMID": int(cls._try_single_find(tree, "MedlineCitation/PMID")),
+            "title": cls._try_single_find(tree, "MedlineCitation/Article/ArticleTitle"),
+            "abstract": cls._get_abstract(tree, cls.ABSTRACT_ARTICLE_SEARCH_STRING),
+            "citation": cls._journal_info(tree),
+            "year": cls._get_year(tree, dtype=cls.ARTICLE),
+            "doi": cls._get_doi(tree, cls.DOI_ARTICLE_SEARCH_STRING),
         }
-        d.update(self._authors_info(article, self.ARTICLE))
+        d.update(cls._authors_info(tree, cls.ARTICLE))
         return d
 
-    def _parse_book(self, book):
-        pmid = str(PubMedFetch._try_single_find(book, "BookDocument/PMID"))
-        logging.debug("Parsing results for PMID: {pmid}".format(pmid=pmid))
-        book_title = PubMedFetch._try_single_find(book, "BookDocument/Book/BookTitle")
-        article_title = self._try_single_find(book, "BookDocument/ArticleTitle")
-        abstract = self._get_abstract(book, self.ABSTRACT_BOOK_SEARCH_STRING)
-        year = self._get_year(book, dtype=self.BOOK)
-        doi = self._get_doi(book, self.DOI_BOOK_SEARCH_STRING)
+    @classmethod
+    def _parse_book(cls, tree) -> Dict:
+        pmid = int(cls._try_single_find(tree, "BookDocument/PMID"))
+        book_title = cls._try_single_find(tree, "BookDocument/Book/BookTitle")
+        article_title = cls._try_single_find(tree, "BookDocument/ArticleTitle")
+        abstract = cls._get_abstract(tree, cls.ABSTRACT_BOOK_SEARCH_STRING)
+        year = cls._get_year(tree, dtype=cls.BOOK)
+        doi = cls._get_doi(tree, cls.DOI_BOOK_SEARCH_STRING)
 
         d = {
-            "xml": ET.tostring(book, encoding="unicode"),
+            "xml": ET.tostring(tree, encoding="utf-8"),
             "PMID": pmid,
             "abstract": abstract,
             "year": year,
             "doi": doi,
         }
-        d.update(self._authors_info(book, self.BOOK))
+        d.update(cls._authors_info(tree, cls.BOOK))
 
         if article_title:
             d["title"] = article_title
-            d["citation"] = self._get_book_citation(book, title=book_title)
+            d["citation"] = cls._get_book_citation(tree, title=book_title)
         else:
             d["title"] = book_title
-            d["citation"] = self._get_book_citation(book)
+            d["citation"] = cls._get_book_citation(tree)
 
         return d
 
-    def _get_abstract(self, article, search_string):
+    @classmethod
+    def _get_abstract(cls, tree, search_string) -> str:
         txt = ""
 
-        abstracts = article.findall(search_string)
+        abstracts = tree.findall(search_string)
 
         # standard abstract
         if len(abstracts) == 1:
@@ -209,22 +220,23 @@ class PubMedFetch(PubMedUtility):
         return txt
 
     @classmethod
-    def _try_single_find(cls, xml, search):
+    def _try_single_find(cls, tree, search) -> str:
         try:
-            match = xml.find(search)
+            match = tree.find(search)
             return "".join([txt for txt in match.itertext()])
         except Exception:
             return ""
 
-    def _authors_info(self, et, dtype):
+    @classmethod
+    def _authors_info(cls, tree, dtype) -> Dict:
         names = []
 
-        if dtype == self.ARTICLE:
-            auths = et.findall("MedlineCitation/Article/AuthorList/Author")
-        elif dtype == self.BOOK:
+        if dtype == cls.ARTICLE:
+            auths = tree.findall("MedlineCitation/Article/AuthorList/Author")
+        elif dtype == cls.BOOK:
             auths = chain(
-                et.findall('BookDocument/Book/AuthorList[@Type="authors"]/Author'),
-                et.findall('BookDocument/AuthorList[@Type="authors"]/Author'),
+                tree.findall('BookDocument/Book/AuthorList[@Type="authors"]/Author'),
+                tree.findall('BookDocument/AuthorList[@Type="authors"]/Author'),
             )
 
         for auth in auths:
@@ -244,26 +256,22 @@ class PubMedFetch(PubMedUtility):
 
         return {"authors": names, "authors_short": utils.get_author_short_text(names)}
 
-    def _journal_info(self, article):
+    @classmethod
+    def _journal_info(cls, tree) -> str:
         return "{journal} {year}; {volume} ({issue}):{pages}".format(
-            journal=PubMedFetch._try_single_find(
-                article, "MedlineCitation/Article/Journal/ISOAbbreviation"
+            journal=cls._try_single_find(tree, "MedlineCitation/Article/Journal/ISOAbbreviation"),
+            year=cls._try_single_find(
+                tree, "MedlineCitation/Article/Journal/JournalIssue/PubDate/Year"
             ),
-            year=PubMedFetch._try_single_find(
-                article, "MedlineCitation/Article/Journal/JournalIssue/PubDate/Year"
+            volume=cls._try_single_find(
+                tree, "MedlineCitation/Article/Journal/JournalIssue/Volume"
             ),
-            volume=PubMedFetch._try_single_find(
-                article, "MedlineCitation/Article/Journal/JournalIssue/Volume"
-            ),
-            issue=PubMedFetch._try_single_find(
-                article, "MedlineCitation/Article/Journal/JournalIssue/Issue"
-            ),
-            pages=PubMedFetch._try_single_find(
-                article, "MedlineCitation/Article/Pagination/MedlinePgn"
-            ),
+            issue=cls._try_single_find(tree, "MedlineCitation/Article/Journal/JournalIssue/Issue"),
+            pages=cls._try_single_find(tree, "MedlineCitation/Article/Pagination/MedlinePgn"),
         )
 
-    def _get_book_citation(self, et, title=None):
+    @classmethod
+    def _get_book_citation(cls, tree, title=None) -> str:
         if title:
             title += " "
         else:
@@ -271,32 +279,42 @@ class PubMedFetch(PubMedUtility):
 
         return "{title}({year}). {location}: {publisher}.".format(
             title=title,
-            year=PubMedFetch._try_single_find(et, "BookDocument/Book/PubDate/Year"),
-            location=PubMedFetch._try_single_find(
-                et, "BookDocument/Book/Publisher/PublisherLocation"
-            ),
-            publisher=PubMedFetch._try_single_find(et, "BookDocument/Book/Publisher/PublisherName"),
+            year=cls._try_single_find(tree, "BookDocument/Book/PubDate/Year"),
+            location=cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherLocation"),
+            publisher=cls._try_single_find(tree, "BookDocument/Book/Publisher/PublisherName"),
         )
 
-    def _get_year(self, et, dtype):
-        if dtype == self.ARTICLE:
-            year = et.find("MedlineCitation/Article/Journal/JournalIssue/PubDate/Year")
+    @classmethod
+    def _get_year(cls, tree, dtype) -> Optional[int]:
+        if dtype == cls.ARTICLE:
+            year = tree.find("MedlineCitation/Article/Journal/JournalIssue/PubDate/Year")
             if year is not None:
                 return int(year.text)
 
-            medline_date = et.find(
+            medline_date = tree.find(
                 "MedlineCitation/Article/Journal/JournalIssue/PubDate/MedlineDate"
             )  # noqa
             if medline_date is not None:
                 year = re.search(r"(\d+){4}", medline_date.text)
                 if year is not None:
                     return int(year.group(0))
-        elif dtype == self.BOOK:
-            year = et.find("BookDocument/Book/PubDate/Year")
+
+            return None
+
+        elif dtype == cls.BOOK:
+            year = tree.find("BookDocument/Book/PubDate/Year")
             if year is not None:
                 return int(year.text)
 
-    def _get_doi(self, et, search_string):
-        doi = et.find(search_string)
+            return None
+        else:
+            raise ValueError("Unreachable code")
+            return None
+
+    @classmethod
+    def _get_doi(cls, tree, search_string) -> Optional[str]:
+        doi = tree.find(search_string)
         if doi is not None:
             return doi.text
+        else:
+            return None

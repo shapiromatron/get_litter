@@ -1,10 +1,13 @@
 # History
 
-## 0.2.7 (2020-03-24)
+## 0.3.0 (2020-03-26)
 
 * Standardize author name cleanup across all import types
-* Rename `authors_list` to `authors`
+* Rename `authors_list` to `authors`; all return a list of authors
+* Pubmed and HERO import fetch requests expect a list of integer values, not strings
+* Pubmed and HERO ids returned in content are now integer instead of strings
 * For HERO and RIS, don't save json field as string, but instead as JSON-compatible dictionary
+* Python 3.6 or higher is required
 
 ## 0.2.6 (2020-01-30)
 

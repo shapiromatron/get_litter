@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import logging
 import re
 from copy import copy
+from typing import Optional
 
 import xlsxwriter
 from RISparser import readris
@@ -132,7 +132,7 @@ class ReferenceParser:
         if not hasattr(self, "_formatted"):
             self._formatted = dict(
                 authors_short=self._get_authors_short(),
-                authors=", ".join(self._authors),
+                authors=self._authors,
                 title=self._get_field(self.TITLE_FIELDS, self.PLACEHOLDER_TEXT),
                 year=self._get_field(self.YEAR_FIELDS, None),
                 citation=self._get_citation(),
@@ -153,17 +153,17 @@ class ReferenceParser:
                 return self.content.get(fld)
         return default
 
-    def _get_pmid(self):
+    def _get_pmid(self) -> Optional[int]:
         # get PMID if specified in that field
         if "pubmed_id" in self.content:
             pubmed_id = self.content["pubmed_id"]
             if type(pubmed_id) is int:
-                return str(pubmed_id)
+                return pubmed_id
             else:
                 m = self.re_pmid.findall(pubmed_id)
                 if len(m) > 0:
                     # no try/catch req'd; return first matching int
-                    return str(m[0])
+                    return int(m[0])
 
         # get value accession number is NLM
         if self.content.get("name_of_database", "") == "NLM" and "accession_number" in self.content:
