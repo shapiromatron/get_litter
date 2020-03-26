@@ -147,7 +147,7 @@ class PubMedParser:
     ABSTRACT_BOOK_SEARCH_STRING = "BookDocument/Abstract/AbstractText"
 
     @classmethod
-    def parse(cls, tree) -> Optional[Dict]:
+    def parse(cls, tree: ET.Element) -> Optional[Dict]:
         if tree.tag == "PubmedArticle":
             return cls._parse_article(tree)
         elif tree.tag == "PubmedBookArticle":
@@ -157,9 +157,9 @@ class PubMedParser:
             return None
 
     @classmethod
-    def _parse_article(cls, tree) -> Dict:
+    def _parse_article(cls, tree: ET.Element) -> Dict:
         d = {
-            "xml": ET.tostring(tree, encoding="utf-8"),
+            "xml": ET.tostring(tree, encoding="unicode"),
             "PMID": int(cls._try_single_find(tree, "MedlineCitation/PMID")),
             "title": cls._try_single_find(tree, "MedlineCitation/Article/ArticleTitle"),
             "abstract": cls._get_abstract(tree, cls.ABSTRACT_ARTICLE_SEARCH_STRING),
@@ -171,7 +171,7 @@ class PubMedParser:
         return d
 
     @classmethod
-    def _parse_book(cls, tree) -> Dict:
+    def _parse_book(cls, tree: ET.Element) -> Dict:
         pmid = int(cls._try_single_find(tree, "BookDocument/PMID"))
         book_title = cls._try_single_find(tree, "BookDocument/Book/BookTitle")
         article_title = cls._try_single_find(tree, "BookDocument/ArticleTitle")
@@ -180,7 +180,7 @@ class PubMedParser:
         doi = cls._get_doi(tree, cls.DOI_BOOK_SEARCH_STRING)
 
         d = {
-            "xml": ET.tostring(tree, encoding="utf-8"),
+            "xml": ET.tostring(tree, encoding="unicode"),
             "PMID": pmid,
             "abstract": abstract,
             "year": year,
@@ -198,7 +198,7 @@ class PubMedParser:
         return d
 
     @classmethod
-    def _get_abstract(cls, tree, search_string) -> str:
+    def _get_abstract(cls, tree: ET.Element, search_string) -> str:
         txt = ""
 
         abstracts = tree.findall(search_string)
@@ -220,7 +220,7 @@ class PubMedParser:
         return txt
 
     @classmethod
-    def _try_single_find(cls, tree, search) -> str:
+    def _try_single_find(cls, tree: ET.Element, search) -> str:
         try:
             match = tree.find(search)
             return "".join([txt for txt in match.itertext()])
@@ -228,7 +228,7 @@ class PubMedParser:
             return ""
 
     @classmethod
-    def _authors_info(cls, tree, dtype) -> Dict:
+    def _authors_info(cls, tree: ET.Element, dtype) -> Dict:
         names = []
 
         if dtype == cls.ARTICLE:
@@ -257,7 +257,7 @@ class PubMedParser:
         return {"authors": names, "authors_short": utils.get_author_short_text(names)}
 
     @classmethod
-    def _journal_info(cls, tree) -> str:
+    def _journal_info(cls, tree: ET.Element) -> str:
         journal = cls._try_single_find(tree, "MedlineCitation/Article/Journal/ISOAbbreviation")
         year = cls._try_single_find(
             tree, "MedlineCitation/Article/Journal/JournalIssue/PubDate/Year"
@@ -268,7 +268,7 @@ class PubMedParser:
         return f"{journal} {year}; {volume} ({issue}):{pages}"
 
     @classmethod
-    def _get_book_citation(cls, tree, title=None) -> str:
+    def _get_book_citation(cls, tree: ET.Element, title=None) -> str:
         if title:
             title += " "
         else:
@@ -280,7 +280,7 @@ class PubMedParser:
         return f"{title}({year}). {location}: {publisher}."
 
     @classmethod
-    def _get_year(cls, tree, dtype) -> Optional[int]:
+    def _get_year(cls, tree: ET.Element, dtype) -> Optional[int]:
         if dtype == cls.ARTICLE:
             year = tree.find("MedlineCitation/Article/Journal/JournalIssue/PubDate/Year")
             if year is not None:
@@ -307,7 +307,7 @@ class PubMedParser:
             return None
 
     @classmethod
-    def _get_doi(cls, tree, search_string) -> Optional[str]:
+    def _get_doi(cls, tree: ET.Element, search_string) -> Optional[str]:
         doi = tree.find(search_string)
         if doi is not None:
             return doi.text
