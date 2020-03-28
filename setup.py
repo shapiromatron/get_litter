@@ -36,6 +36,7 @@ setup(
             "flake8==3.7.9",
             "isort==4.3.21",
             "flake8-isort==2.8.0",
+            "twine",
         ],
         "test": test_requirements,
     },
